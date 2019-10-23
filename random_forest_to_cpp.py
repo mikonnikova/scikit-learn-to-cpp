@@ -3,7 +3,7 @@
 # Transform sklearn.ensemble.RandomForestClassifier model into C++ function
 # Creates two files:
 #   .h with inline decision trees function
-#   .cpp with random_forest(std::vector<float> feature_vector) function to be used in C++ code
+#   .cpp with random_forest(std::vector<T> feature_vector) function to be used in C++ code
 # Can be used as a standalone script or imported into Python code
 #
 # Decision tree part inspired by https://github.com/papkov/DecisionTreeToCpp
@@ -85,7 +85,7 @@ def random_forest_to_cpp(forest, data_type='float', filename='forest'):
         print('#endif', file=f)
 
     with open(filename + '.cpp', 'w') as f:
-        print('#include "forest.h"', file=f)
+        print('#include "%s.h"' % filename, file=f)
         print(prediction_function(len(forest), len(forest[0].tree_.value[0][0]) + 1, data_type), file=f)
 
     print("Forest saved")
@@ -95,30 +95,15 @@ def random_forest_to_cpp(forest, data_type='float', filename='forest'):
 # transforms classifier in pickle format into C++ code
 if __name__ == "__main__":
     import pickle
-    import sys
+    import argparse
 
-    if len(sys.argv) == 1:
-        print('Need parameters for standalone execution\nType --help for details')
-        exit(1)
-    file = sys.argv[1]
+    parser = argparse.ArgumentParser(description='Save pickled RandomForest classifier in C++ format')
+    parser.add_argument('file', type=str, help='Name of pickle file to read RandomForest classifier from')
+    parser.add_argument('-t', '--data_type', default='float', help='Features data type (default:float)')
+    parser.add_argument('-f', '--new_file', default='forest',
+                        help='Name of file to save RandomForest classifier in C++ format to (default:forest)')
 
-    if file == '--help':
-        print('Parameters are:')
-        print('1) Name of pickle file to read Random Forest classifier from')
-        print('2) Name of file to save Random Forest classifier in C++ format to [optional, default=forest]')
-        print('3) Features data type [optional, default=float]')
-        exit(0)
-
-    if len(sys.argv) > 2:
-        new_file = sys.argv[2]
-    else:
-        new_file = "forest"
-
-    if len(sys.argv) > 3:
-        data_type = sys.argv[3]
-    else:
-        data_type = 'float'
-
-    with open(file, 'rb') as ff:
+    args = parser.parse_args()
+    with open(args.file, 'rb') as ff:
         clf = pickle.load(ff)
-    random_forest_to_cpp(clf, data_type, new_file)
+    random_forest_to_cpp(clf, args.data_type, args.new_file)
